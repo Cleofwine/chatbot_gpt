@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "chatgpt-sensitive/proto";
+package chatgpt_sensitive;
+
+message ValidateReq {
+    string text = 1;
+}
+
+message ValidateRes{
+    bool ok = 1;
+    string word = 2;
+}
+
+service ChatGPTSensitive {
+    rpc Validate(ValidateReq) returns (ValidateRes) {}
+}

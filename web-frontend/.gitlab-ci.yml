@@ -1,0 +1,87 @@
+# stages:          
+#   - build # 构建阶段
+#   - test # 测试阶段
+#   - deploy # 部署阶段
+
+variables:
+  DEPLOY_ENV: ''
+  DEPLOY_IMG: ''
+  REPO: 'chatgpt-frontend' # docker service ls 服务后面的镜像不包括仓库标识和版本的名称
+  SERVICE_NAME: 'chatgpt-stack_chatgpt-frontend' # 服务的名称
+
+workflow:
+  rules: # 这里的意思是，只要有一个满足就进行下面的构建
+      # git checkout -b dev ; 只要是测试分支，就构建
+    - if: $CI_COMMIT_BRANCH == "dev" && $CI_PIPELINE_SOURCE == "push" 
+      variables:
+        DEPLOY_ENV: 'dev' # 设置变量
+        DEPLOY_IMG: '${REPO}:${CI_COMMIT_SHORT_SHA}' # 镜像版本是提交的id
+      # git tag 0.1.0 ; git push origin 0.1.0 可以触发，我们的逻辑是打tag为发布模式，触发生产环境构建
+    - if: $CI_COMMIT_TAG 
+      variables:
+        DEPLOY_ENV: 'prod' # 设置变量
+        DEPLOY_IMG: '${REPO}:${CI_COMMIT_TAG}' # 镜像版本是我们提交的tag
+    - when: never # 其他不满足的就不往下走了，如果是always表示不满足也往下走
+
+stages:          
+  - build # 构建阶段
+  - deploy # 部署阶段（部署到测试环境和生产环境）
+
+build-job:       # 构建阶段只有一个job
+  stage: build
+  before_script:
+    # 登录我们私有的docker注册中心
+    - docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD} ${DOCKER_REGISTRY}
+  script:
+    # 先自动化构建镜像
+    - docker build -t ${DOCKER_REGISTRY}/${DEPLOY_IMG} .
+    # 推送到私有注册中心
+    - docker push ${DOCKER_REGISTRY}/${DEPLOY_IMG}
+
+# 我们没有测试阶段，也就是说build完，我们这里人工测试后再进行下一个阶段
+# 测试阶段有两个job，这两个是可以并行的
+# unit-test-job:   # This job runs in the test stage.
+#   stage: test    # It only starts when the job in the build stage completes successfully.
+#   script:
+#     - echo "Running unit tests... This will take about 60 seconds."
+#     - sleep 60
+#     - echo "Code coverage is 90%"
+
+# lint-test-job:   # This job also runs in the test stage.
+#   stage: test    # It can run at the same time as unit-test-job (in parallel).
+#   script:
+#     - echo "Linting code... This will take about 10 seconds."
+#     - sleep 10
+#     - echo "No lint issues found."
+
+# 我们的测试环境和生产环境通常是分开的，我们可以根据runner的不同标签指定不同的runner来执行任务以达到部署到不同环境的目的
+deploy-dev-job:      # 部署到测试环境
+  only: # 只有测试环境才执行
+    variables:
+      - $DEPLOY_ENV == "dev"
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  tags:
+    - deployer # 选择runner
+  variables:
+    CONF_RM_STR: ""
+  before_script:
+    - docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD} ${DOCKER_REGISTRY} # 我们的runner可能分布在不同的节点，最好都登录下
+  script:
+    - echo "deploy dev"
+    - docker service update ${SERVICE_NAME} --image ${DOCKER_REGISTRY}/${DEPLOY_IMG}   
+
+
+deploy-prod-job:      # 部署到生产环境
+  only: # 只有生产环境才执行
+    variables:
+      - $DEPLOY_ENV == "prod"
+  stage: deploy
+  tags:
+    - deployer # 选择runner
+  variables:
+    CONF_RM_STR: ""
+  before_script:
+    - docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD} ${DOCKER_REGISTRY}
+  script:
+    - echo "deploy prod"
+    - docker service update ${SERVICE_NAME} --image ${DOCKER_REGISTRY}/${DEPLOY_IMG}

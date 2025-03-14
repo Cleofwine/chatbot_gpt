@@ -1,0 +1,15 @@
+syntax = "proto3";
+option go_package = "chatgpt-keywords/proto";
+package chatgpt_keywords;
+
+message FindAllReq {
+    string text = 1;
+}
+
+message FindAllRes{
+    repeated string words = 1;
+}
+
+service ChatGPTKeywords {
+    rpc FindAll(FindAllReq) returns (FindAllRes) {}
+}

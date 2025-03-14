@@ -1,0 +1,10 @@
+.idea
+runtime
+config.yaml
+config.cfg
+config.yml
+config.yml.bak
+/mysql/
+/redis/
+/registry-base/
+readme.md
