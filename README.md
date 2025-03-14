@@ -59,7 +59,7 @@ cd ./proxy # 参考READMD.md部署境外代理
 cd ./qq/go-cqhttp 
 ./go-cqhttp
 # 部署微信bot
-cd ./wechat # 参考READMD.md部署，不采用统一部署是因为微信毕竟容易被封
+cd ./wechat # 参考READMD.md部署，不采用统一部署是因为单个微信号容易被封
 ```
 5. 统一部署服务
 ```bash
