@@ -1,12 +1,12 @@
 http:
   host: "0.0.0.0"
   port: 4002
-  access_token: "MYACCESSTOKEN"
+  access_token: ""
 chat:
   api_keys: 
-  - "sk-3QVrdiPg0s1kNjD7WLjDBMJ1jZcYRAKKhsB3zn5vsIywBmZm"
-  - "sk-3QVrdiPg0s1kNjD7WLjDBMJ1jZcYRAKKhsB3zn5vsIywBmZm"
-  base_url: "https://api.chatanywhere.tech"
+  - ""
+  - ""
+  base_url: ""
   # 使用的训练模型
   model: "gpt-3.5-turbo"
   # 单次请求的上下文总长度，包括 请求消息+completion.maxToken 两者总计不能超过4097
